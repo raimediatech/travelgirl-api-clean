@@ -1,0 +1,41 @@
+image: node:18
+
+pipelines:
+
+  branches:
+    only:
+      - dev
+
+  default:
+
+    - step:
+
+        name: Build
+
+        caches:
+
+          - node
+
+        script:
+
+          - npm install
+
+        artifacts:
+
+          - node_modules/**
+    
+    - step:
+
+        name: Deploy to EC2
+
+        deployment: production
+
+        script:
+
+          - echo "Deploying to EC2..."
+
+          - mkdir -p ~/.ssh  # Create the SSH directory if it doesn't exist
+
+          - ssh-keyscan -H ${EC2_HOST} >> ~/.ssh/known_hosts  # Add the host key to known hosts
+
+          - ssh ${EC2_USERNAME}@${EC2_HOST} 'cd /var/www/travelgirl/travel-girl_api && git pull && npm install && pm2 restart index.js'

@@ -1,0 +1,653 @@
+openapi: 3.0.0
+info:
+  title: smbc_api
+  description: Consagous Application
+  version: 1.0.0
+servers:
+  - url: http://localhost:4321/v1/user
+    description: Local server for testing
+
+components:
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      scheme: apiKey
+      name: X-Authorization
+      in: header
+      bearerFormat: JWT
+      description: 'Note: Login to get your the JWT token first, then enter "Bearer <JWT Token>" below, e.g.Bearer 123456abcdef'
+paths:
+  # Auth methods
+  /signup:
+    post:
+      tags:
+        - Auth
+      summary: User signup
+      description: No description
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+            required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: android
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                confirmPassword:
+                  type: string
+                houseNumber:
+                  type: string
+                roadNumber:
+                  type: string
+                address :
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                addressType:
+                  type: string
+              example: # Sample object
+                name: test
+                email: testkr11@yopmail.com
+                password: "Test@12345"
+                confirmPassword: "Test@12345"
+                houseNumber: "11"
+                roadNumber: "12"
+                address: Janjeerwala Square
+                latitude: 0.00000
+                longitude: 0.00000
+                addressType: Home
+      responses:
+        "200":
+          description: otp is sent to your registered email
+        "500":
+          description: Signup failed
+  /login:
+    post:
+      tags:
+        - Auth
+      summary: User Login
+      description: No description
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example: # Sample object
+                email: "test@yopmail.com"
+                password: "Test@12345"
+      responses:
+        "200":
+          description: Login Successfull
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                  # You can add more properties if needed
+              example:
+                message: Login successfully
+                data:
+                  token: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+                  name: "xyz"
+                  email: "xyz@yopmail.com"
+        "500":
+          description: Internal server error
+  /verify-otp:
+    patch:
+      tags:
+        - Auth
+      summary: Verify OTP
+      description: Verify OTP
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otp:
+                  type: number
+                email:
+                  type: string
+              example: # Sample object
+                otp: 2341
+                email: "user@yopmail.com"
+      responses:
+        "200": # status code
+          description: Verified
+        "404":
+          description: Invalid otp
+        "500":
+          description: Internal server error
+  /resend-otp:
+    patch:
+      tags:
+        - Auth
+      summary: Resend OTP
+      description: Resend OTP
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              example: # Sample object
+                email: "user@yopmail.com"
+      responses:
+        "200": # status code
+          description: otp send
+        "404":
+          description: Invalid id
+        "500":
+          description: Internal server error
+  /change-password:
+    patch:
+      tags:
+        - Auth
+      summary: Change Password
+      description: Change Password
+      security:
+        - Bearer: []
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+                confirm_password:
+                  type: string
+              example: # Sample object
+                old_password: "Test@12345"
+                new_password: "Test2@12345"
+                confirm_password: "Test2@12345"
+      responses:
+        "200": # status code
+          description: Password Changed Successfully
+        "404":
+          description: Invalid User
+        "500":
+          description: Internal server error
+  /forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Forgot Password .
+      description: forgot password
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: number
+              example: # Sample object
+                email: user@gmail.com
+      responses:
+        "200": # status code
+          description: Otp sent to your registered email
+        "404":
+          description: Invalid email id
+        "500":
+          description: Internal Server Error
+  /forgot-password-reset:
+    patch:
+      tags:
+        - Auth
+      summary: Forgot Password-reset.
+      description: forgot password-reset
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                confirmPassword:
+                  type: string
+                role:
+                  type: number
+              example: # Sample object
+                email: "user@yopmail.com"
+                password: "user@123"
+                confirmPassword: "user@123"
+                role: 2
+      responses:
+        "200":
+          description: Password Changed
+        "404":
+          description: You are not verified.please verify
+        "500":
+          description: Internal Server Error
+  /contact-us:
+    post:
+      tags:
+        - Auth
+      summary: Contact Us form
+      description: No description
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: android
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                postalCode:
+                  type: number
+                email:
+                  type: string
+                  format: email
+                message:
+                  type: string
+              example: # Sample object
+                name: "User"
+                phone: "9876543210"
+                postalCode: 87897644
+                email: user@yopmail.com
+                message: "Sending a message"
+              description: referral_code optional
+      responses:
+        "200": # status code
+          description: Submitted Successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "400":
+          description: Form submission failed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /user-detail:
+    get:
+      tags:
+        - Auth
+      security:
+        - Bearer: []
+      summary: Getting User details
+      description: No description
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: android
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      responses:
+        "200": # status code
+          description: Getting User Details Successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "400":
+          description: Getting User Details failed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /delete:
+    patch:
+      tags:
+        - AuthReview
+      security:
+        - Bearer: []
+      summary: Update User status
+      description: No description
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated user status
+        "400":
+          description: user status update failed
+ 

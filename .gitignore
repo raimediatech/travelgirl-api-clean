@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.env
+*.log
+.DS_Store
+Thumbs.db
+capri-302ac-firebase-adminsdk-wrh5u-4523c6bf3b.json
+utils/opneai.js

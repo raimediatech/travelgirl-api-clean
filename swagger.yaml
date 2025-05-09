@@ -1,0 +1,153 @@
+openapi: 3.0.0
+info:
+  title: smbc_api
+  description: Consagous Application
+  version: 1.0.0
+servers:
+  - url: http://localhost:4321/v1/admin
+    description: Local server for testing
+
+components:
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      scheme: apiKey
+      name: X-Authorization
+      in: header
+      bearerFormat: JWT
+      description: 'Note: Login to get your the JWT token first, then enter "Bearer <JWT Token>" below, e.g.Bearer 123456abcdef'
+paths:
+  # Auth Methods
+  /login:
+    post:
+      tags:
+        - Auth
+      summary: Login admin
+      description: No description
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example: # Sample object
+                email: admin@saypro.com
+                password: "12345"
+      responses:
+        "200": # status code
+          description: Login Data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /change-password:
+    put:
+      security:
+        - Bearer: []
+      tags:
+        - Auth
+      summary: Update new password
+      description: In-progress
+      parameters:
+        - in: header
+          name: version
+          schema:
+            type: string
+            default: 1.0.0
+          required: true
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            default: en
+          required: true
+        - in: header
+          name: time-zone
+          schema:
+            type: string
+            default: asia/calcutta
+          required: true
+        - in: header
+          name: device-type
+          schema:
+            type: string
+            default: browser
+          required: true
+        - in: header
+          name: device-token
+          schema:
+            type: string
+            default: 12345
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+                confirm_password:
+                  type: string
+              example: # Sample object
+                old_password: "12345"
+                new_password: "Aa@12345"
+                confirm_password: "Aa@12345"
+              description: referral_code optional
+      responses:
+        "200": # status code
+          description: Change Password Successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "400":
+          description: Changing Password failed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
