@@ -1,11 +1,11 @@
 import admin from "firebase-admin";
-import serviceAccount from "../capri-302ac-firebase-adminsdk-wrh5u-4523c6bf3b.json" assert { type: "json" };
 
-// Initialize Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`,
-});
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
 
-// Export the `admin` instance to be used in other files
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
 export default admin;
