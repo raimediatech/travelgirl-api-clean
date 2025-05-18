@@ -23,7 +23,7 @@ let checkAuthTokenAndVersion = async (req, res, next) => {
     );
   }
   if (headerContent.hasOwnProperty("x-authorization")) {
-    const getAuthToken = headerContent["x-authorization"];
+    const getAuthToken = headerContent["x-authorization"] || headerContent["authorization"];
 
     if (!getAuthToken.includes("Bearer")) {
       return helper.returnFalseResponse(

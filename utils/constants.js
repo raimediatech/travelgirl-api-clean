@@ -64,10 +64,10 @@ const constants = Object.freeze({
   CONST_FORGOT_OTP: "forgotPassword",
   CONST_REGISTER_OTP: "registerOtp",
 
-  CONST_DEVICE_TYPES: ["ios", "android", "browser"],
-  CONST_DEVICE_ANDROID: "Android",
-  CONST_DEVICE_IOS: "Ios",
-  CONST_DEVICE_BROWSER: "Browser",
+  CONST_DEVICE_TYPES: ['ios', 'android', 'browser'],
+  CONST_DEVICE_ANDROID: 'android',
+  CONST_DEVICE_IOS: 'ios',
+  CONST_DEVICE_BROWSER: 'browser',
 
   CONST_WEB_ADMIN: "Admin",
   CONST_WEB_USER: "User",
