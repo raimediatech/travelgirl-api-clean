@@ -68,6 +68,11 @@ app.use(async (req, res, next) => {
         if (deviceTypeMaster.includes(deviceType.toLowerCase())) {
           const version = headerContent["version"];
           let versionData = await appVersionModel.findOne({
+          // Guard against missing versionData
+          if (!versionData) {
+            console.warn(`No versionData for device ${queryDevice}, skipping version check`);
+            return next();
+          }
             device: deviceType,
           });
 
