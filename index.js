@@ -5,7 +5,7 @@ dotenv.config();
 import connect from "./utils/dbConnection.js";
 connect();
 
-// Custom utilities
+// custom created files
 import constants from "./utils/constants.js";
 import i18n from "./config/i18n.js";
 import helper from "./utils/helper.js";
@@ -13,56 +13,50 @@ import helper from "./utils/helper.js";
 import express from "express";
 import bodyParser from "body-parser";
 import cron from "node-cron";
-import semver from "semver";                                  // ← added import
 
-// API docs
+// API collection configuration section
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import cors from "cors";
-const swaggerDocument = YAML.load("./swagger.yaml");
-const swaggerUserDocument = YAML.load("./user_swagger.yaml");
 
 import appVersionModel from "./models/appVersion.model.js";
+
+// load swagger docs
+const swaggerDocument = YAML.load("./swagger.yaml");
+const swaggerUserDocument = YAML.load("./user_swagger.yaml");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Health check / forbidden root
+// root health check
 app.get("/", async (req, res) => {
   return res
     .status(constants.CONST_RESP_CODE_OK)
     .send(i18n.__("lang_forbidden"));
 });
 
-// Set timezone for cron jobs
+// timezone
 process.env.TZ = "Europe/London";
 
-// Swagger UI
-app.use(
-  "/api-user",
-  swaggerUi.serve,
-  (...args) => swaggerUi.setup(swaggerUserDocument)(...args)
-);
+// swagger routes
+app.use("/api-user", swaggerUi.serve, swaggerUi.setup(swaggerUserDocument));
+app.use("/api-admin", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// scheduled tasks
 cron.schedule("* * * * *", () => helper.checkBoost());
 cron.schedule("* * * * *", () => helper.removeIgnoreProfile());
-app.use(
-  "/api-admin",
-  swaggerUi.serve,
-  (...args) => swaggerUi.setup(swaggerDocument)(...args)
-);
 
-// Version-check & header validation middleware
+// version & header validation middleware
 app.use(async (req, res, next) => {
-  const headers = req.headers;
-  const url = req.url;
-  const allowList = constants.CONST_ALLOW_URL_WITHOUT_HEADER;
+  const headerContent = req.headers;
+  const currentUrl = req.url;
+  const urlMaster = constants.CONST_ALLOW_URL_WITHOUT_HEADER;
 
-  if (allowList.includes(url)) {
+  if (urlMaster.includes(currentUrl)) {
     return next();
   }
 
-  // Required headers
   const required = [
     "accept-language",
     "time-zone",
@@ -70,7 +64,7 @@ app.use(async (req, res, next) => {
     "device-token",
     "version",
   ];
-  const hasAll = required.every((h) => headers.hasOwnProperty(h));
+  const hasAll = required.every((h) => headerContent.hasOwnProperty(h));
   if (!hasAll) {
     return helper.returnFalseResponse(
       req,
@@ -81,9 +75,9 @@ app.use(async (req, res, next) => {
     );
   }
 
-  // Language
-  const lang = headers["accept-language"];
-  if (!constants.CONST_RESP_LANG_COLLECTION.includes(lang)) {
+  // language handling
+  const acceptLanguage = headerContent["accept-language"];
+  if (!constants.CONST_RESP_LANG_COLLECTION.includes(acceptLanguage)) {
     return helper.returnFalseResponse(
       req,
       res,
@@ -92,14 +86,15 @@ app.use(async (req, res, next) => {
       {}
     );
   }
-  if (i18n.getLocale() !== lang) {
-    i18n.setLocale(lang);
+  if (i18n.getLocale() !== acceptLanguage) {
+    i18n.setLocale(acceptLanguage);
   }
 
-  // Device type
-  const deviceType = headers["device-type"];
-  const queryDevice = deviceType.toLowerCase();
-  if (!constants.CONST_DEVICE_TYPES.includes(queryDevice)) {
+  // device-type handling
+  const deviceType = headerContent["device-type"];
+  if (
+    !constants.CONST_DEVICE_TYPES.includes(deviceType.toLowerCase())
+  ) {
     return helper.returnFalseResponse(
       req,
       res,
@@ -108,12 +103,27 @@ app.use(async (req, res, next) => {
       {}
     );
   }
+  const queryDevice = deviceType.toLowerCase();
 
-  // Version check
-  const clientVersion = headers["version"];
-  let versionData = await appVersionModel.findOne({
-    device: { $regex: `^${queryDevice}$`, $options: "i" },
-  });
+  // version check
+  const version = headerContent["version"];
+  let versionData;
+  try {
+    versionData = await appVersionModel.findOne({
+      device: { $regex: `^${queryDevice}$`, $options: "i" },
+    });
+  } catch (e) {
+    console.error("Version lookup error:", e);
+    return helper.returnFalseResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_UNAUTHORIZED,
+      i18n.__("lang_invalid_header"),
+      {}
+    );
+  }
+
+  // Guard against missing record
   if (!versionData) {
     console.warn(
       `No versionData for device ${queryDevice}, skipping version check`
@@ -121,9 +131,8 @@ app.use(async (req, res, next) => {
     return next();
   }
 
-  const backendVer = semver.coerce(versionData.version);
-  const clientVer = semver.coerce(clientVersion);
-  if (clientVer && backendVer.major > clientVer.major) {
+  // enforce version
+  if (version < versionData.version) {
     return helper.returnFalseResponse(
       req,
       res,
@@ -137,21 +146,21 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Admin routes
+// your routers
 import adminRouter from "./modules/admin/router/index.js";
 app.use("/v1/admin/", adminRouter);
 
-// User routes
 import userRouter from "./modules/user/router/index.js";
 app.use("/v1/user/", userRouter);
 
-// Fallback 404
-app.use((req, res) => {
+// 404 handler
+app.use("*", (req, res) => {
   res.status(404).json({
     message: i18n.__("lang_endpoint_not_found_message"),
   });
 });
 
-// Start server
-const PORT = process.env.APP_PORT || 3000;
-app.listen(PORT, () => console.log(`Server run on: ${PORT}`));
+// start server
+app.listen(process.env.APP_PORT, () => {
+  console.log(`Server run on: ${process.env.APP_PORT}`);
+});
