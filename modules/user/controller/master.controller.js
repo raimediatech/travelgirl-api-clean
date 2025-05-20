@@ -175,23 +175,6 @@ const getCountries = async (req, res) => {
       console.log("Using iOS-specific approach for countries");
     }
     
-    // Check if request is from iOS
-    const deviceType = req.headers['device-type'] || '';
-    const isIOS = deviceType.toLowerCase() === 'ios';
-    
-    console.log(`Country list request from device type: ${deviceType}`);
-    
-    // Set additional headers for iOS to fix dropdown issues
-    if (isIOS) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language, Time-Zone, Device-Type, Device-Token, Version');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      console.log("Using iOS-specific approach for countries");
-    }
-    
     let page, limit;
     if (req.query?.page) {
       page = req.query.page;
