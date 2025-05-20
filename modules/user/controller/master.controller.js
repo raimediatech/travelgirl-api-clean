@@ -372,7 +372,7 @@ const getCities = async (req, res) => {
         // Add pagination if 'page' query param exists
       if (req.query?.page) {
         const page = parseInt(req.query.page);
-        cons  t limit = constants.CONST_LIMIT;
+        const limit = constants.CONST_LIMIT;
         const skip = (page - 1) * limit;
         aggregationPipeline.push({ $skip: skip }, { $limit: limit });
       }
