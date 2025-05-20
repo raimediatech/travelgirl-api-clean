@@ -357,15 +357,14 @@ const getCities = async (req, res) => {
       // For Android and other devices, use the original aggregation pipeline
         const aggregationPipeline = [
           { $match: match },
-        {
-        {
-          $group: {
+          {
+            $group: {
               _id: "$name",
               city: { $first: "$$ROOT" }, // Select the first document in each group
-            },
+            }
           },
-        {
-          $replaceRoot: { newRoot: "$city" },
+          {
+            $replaceRoot: { newRoot: "$city" }
           },
           { $sort: { name: 1 } },
         ];
