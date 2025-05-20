@@ -26,7 +26,27 @@ const swaggerDocument = YAML.load("./swagger.yaml");
 const swaggerUserDocument = YAML.load("./user_swagger.yaml");
 
 const app = express();
-app.use(cors());
+// Enhanced CORS configuration with explicit headers for iOS compatibility
+// Enhanced CORS configuration with explicit headers for iOS compatibility
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'Time-Zone', 'Device-Type', 'Device-Token', 'Version'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  credentials: true
+}));
+
+// Handle OPTIONS requests explicitly for iOS
+app.options('*', cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'Time-Zone', 'Device-Type', 'Device-Token', 'Version'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  credentials: true
+}));
+
+// Handle OPTIONS requests explicitly for iOS
+app.options('*', cors());
 app.use(bodyParser.json());
 
 // root health check

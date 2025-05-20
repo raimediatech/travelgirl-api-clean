@@ -158,11 +158,46 @@ let contactUs = async (req, res) => {
 
 const getCountries = async (req, res) => {
   try {
+    // Check if request is from iOS
+    const deviceType = req.headers['device-type'] || '';
+    const isIOS = deviceType.toLowerCase() === 'ios';
+    
+    console.log(`Country list request from device type: ${deviceType}`);
+    
+    // Set additional headers for iOS to fix dropdown issues
+    if (isIOS) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language, Time-Zone, Device-Type, Device-Token, Version');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      console.log("Using iOS-specific approach for countries");
+    }
+    
+    // Check if request is from iOS
+    const deviceType = req.headers['device-type'] || '';
+    const isIOS = deviceType.toLowerCase() === 'ios';
+    
+    console.log(`Country list request from device type: ${deviceType}`);
+    
+    // Set additional headers for iOS to fix dropdown issues
+    if (isIOS) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language, Time-Zone, Device-Type, Device-Token, Version');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      console.log("Using iOS-specific approach for countries");
+    }
+    
     let page, limit;
     if (req.query?.page) {
       page = req.query.page;
       limit = constants.CONST_LIMIT;
     }
+    
     let filterObj = {};
     if (req.query?.search) {
       filterObj.name = {
@@ -170,11 +205,22 @@ const getCountries = async (req, res) => {
         $options: "i",
       };
     }
+    
     let query = countryModel.find(filterObj).sort({ name: 1 });
     if (page) {
       query = query.skip((page - 1) * limit).limit(limit);
     }
-    let data = await query;
+    
+    // For iOS, ensure we're using lean() to get plain objects
+    let data;
+    if (isIOS) {
+      data = await query.lean();
+      // Return with explicit content type for iOS
+      res.setHeader('Content-Type', 'application/json');
+    } else {
+      data = await query;
+    }
+    
     if (data.length == 0) {
       return helper.returnFalseResponse(
         req,
@@ -194,6 +240,7 @@ const getCountries = async (req, res) => {
       totalCounts
     );
   } catch (error) {
+    console.error("Error in getCountries:", error);
     return helper.returnFalseResponse(
       req,
       res,
@@ -228,8 +275,8 @@ const getCountries = async (req, res) => {
 //     if (data.length == 0) {
 //       return helper.returnFalseResponse(
 //         req,
-//         res,
-//         constants.CONST_RESP_CODE_OK,
+//           res,
+/  /         constants.CONST_RESP_CODE_OK,
 //         i18n.__("lang_no_record_found")
 //       );
 //     }
@@ -254,6 +301,22 @@ const getCountries = async (req, res) => {
 
 const getCities = async (req, res) => {
   try {
+    // Check if request is from iOS
+    const deviceType = req.headers['device-type'] || '';
+    const isIOS = deviceType.toLowerCase() === 'ios';
+    
+    console.log(`City list request from device type: ${deviceType} for country ID: ${req.params.id}`);
+    
+    // Set additional headers for iOS to fix dropdown issues
+    if (isIOS) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language, Time-Zone, Device-Type, Device-Token, Version');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    
     const match = {
       countryId: mongoose.Types.ObjectId.createFromHexString(req.params.id),
       cityId: { $ne: "" },
@@ -265,65 +328,110 @@ const getCities = async (req, res) => {
         $options: "i",
       };
     }
+    
+    // For iOS, use a simpler query approach to avoid aggregation pipeline issues
+    if (isIOS) {
+      console.log("Using iOS-specific query approach for cities");
+      
+      // Use a simpler find operation for iOS
+      let query = cityModel.find(match).sort({ name: 1 });
+      
+      // Add pagination if needed
+      if (req.query?.page) {
+        const page = parseInt(req.query.page);
+        const limit = constants.CONST_LIMIT;
+        const skip = (page - 1) * limit;
+        query = query.skip(skip).limit(limit);
+      }
+      
+      // Execute the query
+      const data = await query.lean();
+      
+      if (data.length === 0) {
+          return helper.returnFalseResponse(
+          req,
+            res,
+          constants.CONST_RESP_CODE_OK,
+          i18n.__("lang_no_record_found")
+        );
+        }
+        
+      // Get total count
+      const totalCounts = await cityModel.countDocuments(match);
+      
+      // Return with explicit content type for iOS
+      res.setHeader('Content-Type', 'application/json');
+        
+          return helper.returnTrueResponse(
+        req,
+        res,
+          constants.CONST_RESP_CODE_OK,
+          i18n.__("lang_cities_data"),
+        data,
+        totalCounts
+      );
+    } else {
+      // For Android and other devices, use the original aggregation pipeline
+        const aggregationPipeline = [
+          { $match: match },
+        {
+        {
+          $group: {
+              _id: "$name",
+              city: { $first: "$$ROOT" }, // Select the first document in each group
+            },
+          },
+        {
+          $replaceRoot: { newRoot: "$city" },
+          },
+          { $sort: { name: 1 } },
+        ];
 
-    // Define the initial aggregation pipeline for data retrieval
-    const aggregationPipeline = [
-      { $match: match },
-      {
-        $group: {
-          _id: "$name",
-          city: { $first: "$$ROOT" }, // Select the first document in each group
+        // Add pagination if 'page' query param exists
+      if (req.query?.page) {
+        const page = parseInt(req.query.page);
+        cons  t limit = constants.CONST_LIMIT;
+        const skip = (page - 1) * limit;
+        aggregationPipeline.push({ $skip: skip }, { $limit: limit });
+      }
+
+      // Execute the main aggregation pipeline
+      const data = await cityModel.aggregate(aggregationPipeline);
+
+      if (data.length === 0) {
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_OK,
+          i18n.__("lang_no_record_found")
+        );
+      }
+
+      // Separate count aggregation for total unique city names (faster than full pipeline)
+      const countPipeline = [
+        { $match: match },
+        {
+          $group: {
+            _id: "$name",
+          },
         },
-      },
-      {
-        $replaceRoot: { newRoot: "$city" },
-      },
-      { $sort: { name: 1 } },
-    ];
+        { $count: "total" },
+      ];
 
-    // Add pagination if 'page' query param exists
-    if (req.query?.page) {
-      const page = parseInt(req.query.page);
-      const limit = constants.CONST_LIMIT;
-      const skip = (page - 1) * limit;
-      aggregationPipeline.push({ $skip: skip }, { $limit: limit });
-    }
+      const totalCountResult = await cityModel.aggregate(countPipeline);
+      const totalCounts = totalCountResult[0]?.total || 0;
 
-    // Execute the main aggregation pipeline
-    const data = await cityModel.aggregate(aggregationPipeline);
-
-    if (data.length === 0) {
-      return helper.returnFalseResponse(
+      return helper.returnTrueResponse(
         req,
         res,
         constants.CONST_RESP_CODE_OK,
-        i18n.__("lang_no_record_found")
+        i18n.__("lang_cities_data"),
+        data,
+        totalCounts
       );
     }
-
-    // Separate count aggregation for total unique city names (faster than full pipeline)
-    const countPipeline = [
-      { $match: match },
-      {
-        $group: {
-          _id: "$name",
-        },
-      },
-      { $count: "total" },
-    ];
-
-    const totalCountResult = await cityModel.aggregate(countPipeline);
-    const totalCounts = totalCountResult[0]?.total || 0;
-
-    return helper.returnTrueResponse(
-      req,
-      res,
-      constants.CONST_RESP_CODE_OK,
-      i18n.__("lang_cities_data"),
-      data,
-      totalCounts
-    );
   } catch (error) {
+    console.error("Error in getCities:", error);
     return helper.returnFalseResponse(
       req,
       res,
