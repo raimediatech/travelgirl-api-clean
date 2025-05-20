@@ -258,8 +258,8 @@ const getCountries = async (req, res) => {
 //     if (data.length == 0) {
 //       return helper.returnFalseResponse(
 //         req,
-//           res,
-/  /         constants.CONST_RESP_CODE_OK,
+//         res,
+//         constants.CONST_RESP_CODE_OK,
 //         i18n.__("lang_no_record_found")
 //       );
 //     }
