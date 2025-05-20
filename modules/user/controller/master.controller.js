@@ -300,10 +300,23 @@ const getCities = async (req, res) => {
       res.setHeader('Expires', '0');
     }
     
-    const match = {
-      countryId: mongoose.Types.ObjectId.createFromHexString(req.params.id),
-      cityId: { $ne: "" },
-    };
+    // Create match criteria with proper ObjectId handling
+    let match;
+    try {
+      match = {
+        countryId: new mongoose.Types.ObjectId(req.params.id),
+        cityId: { $ne: "" },
+      };
+      console.log(`Created match with countryId: ${req.params.id}`);
+    } catch (idError) {
+      console.error(`Error creating ObjectId from ${req.params.id}:`, idError);
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_BAD_REQUEST,
+        `Invalid country ID format: ${req.params.id}`
+      );
+    }
 
     if (req.query?.search) {
       match.name = {
@@ -315,6 +328,7 @@ const getCities = async (req, res) => {
     // For iOS, use a simpler query approach to avoid aggregation pipeline issues
     if (isIOS) {
       console.log("Using iOS-specific query approach for cities");
+      console.log("Match criteria for iOS:", JSON.stringify(match));
       
       // Use a simpler find operation for iOS
       let query = cityModel.find(match).sort({ name: 1 });
@@ -327,49 +341,62 @@ const getCities = async (req, res) => {
         query = query.skip(skip).limit(limit);
       }
       
-      // Execute the query
-      const data = await query.lean();
+      // Execute the query with additional error handling
+      console.log("Executing iOS city query...");
+      let data;
+      try {
+        data = await query.lean();
+        console.log(`iOS city query returned ${data.length} results`);
+      } catch (queryError) {
+        console.error("Error executing iOS city query:", queryError);
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_INTERNAL_SERVER_ERROR,
+          `Error fetching cities: ${queryError.message}`
+        );
+      }
       
       if (data.length === 0) {
-          return helper.returnFalseResponse(
+        return helper.returnFalseResponse(
           req,
-            res,
+          res,
           constants.CONST_RESP_CODE_OK,
           i18n.__("lang_no_record_found")
         );
-        }
-        
+      }
+      
       // Get total count
       const totalCounts = await cityModel.countDocuments(match);
       
       // Return with explicit content type for iOS
       res.setHeader('Content-Type', 'application/json');
-        
-          return helper.returnTrueResponse(
+      
+      return helper.returnTrueResponse(
         req,
         res,
-          constants.CONST_RESP_CODE_OK,
-          i18n.__("lang_cities_data"),
+        constants.CONST_RESP_CODE_OK,
+        i18n.__("lang_cities_data"),
         data,
         totalCounts
       );
     } else {
       // For Android and other devices, use the original aggregation pipeline
-        const aggregationPipeline = [
-          { $match: match },
-          {
-            $group: {
-              _id: "$name",
-              city: { $first: "$$ROOT" }, // Select the first document in each group
-            }
-          },
-          {
-            $replaceRoot: { newRoot: "$city" }
-          },
-          { $sort: { name: 1 } },
-        ];
+      const aggregationPipeline = [
+        { $match: match },
+        {
+          $group: {
+            _id: "$name",
+            city: { $first: "$$ROOT" }, // Select the first document in each group
+          }
+        },
+        {
+          $replaceRoot: { newRoot: "$city" }
+        },
+        { $sort: { name: 1 } },
+      ];
 
-        // Add pagination if 'page' query param exists
+      // Add pagination if 'page' query param exists
       if (req.query?.page) {
         const page = parseInt(req.query.page);
         const limit = constants.CONST_LIMIT;
