@@ -163,7 +163,7 @@ const jwtToken = async (userData) => {
     email: userData.email,
     role: userData.role,
   };
-  const token = jwt.sign(user, secretKey);
+  const token = jwt.sign(user, secretKey, { expiresIn: '30d' });
   return token;
 };
 
