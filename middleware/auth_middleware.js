@@ -22,7 +22,100 @@ let checkAuthTokenAndVersion = async (req, res, next) => {
       460
     );
   }
-  if (headerContent.hasOwnProperty("x-authorization")) {
+    // PATCH: Accept both 'authorization' and 'x-authorization' headers, case-insensitive
+    let getAuthToken = headerContent["authorization"] || headerContent["x-authorization"];
+    if (!getAuthToken) {
+      // try lowercase as well
+      getAuthToken = headerContent["Authorization"] || headerContent["X-Authorization"];
+    }
+    if (!getAuthToken) {
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_UNAUTHORIZED,
+        i18n.__("lang_invalid_token")
+      );
+    }
+    if (!getAuthToken.includes("Bearer")) {
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_UNAUTHORIZED,
+        i18n.__("lang_invalid_token")
+      );
+    }
+    try {
+      const parts = getAuthToken.split(" ");
+      if (parts.length !== 2) {
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_UNAUTHORIZED,
+          i18n.__("lang_invalid_token")
+        );
+      }
+      const scheme = parts[0];
+      const token = parts[1];
+      if (!/^Bearer$/i.test(scheme)) {
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_UNAUTHORIZED,
+          i18n.__("lang_invalid_token")
+        );
+      }
+      const tokenPayload = jwt.decode(token);
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (tokenPayload?.exp < currentTimestamp) {
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_UNAUTHORIZED,
+          i18n.__("lang_token_expired"),
+          {},
+          461
+        );
+      }
+      const decodeToken = jwt.verify(token, constants.CONST_JWT_TOKEN_KEY);
+
+      if (
+        decodeToken.hasOwnProperty("id") &&
+        decodeToken.hasOwnProperty("email")
+      ) {
+        let userInfo = await userModel
+          .findOneAndUpdate(
+            {
+              _id: new mongoose.Types.ObjectId(decodeToken.id),
+            },
+            { deviceType: deviceType, deviceToken: deviceToken }
+          );
+        if (!userInfo) {
+          return helper.returnFalseResponse(
+            req,
+            res,
+            constants.CONST_RESP_CODE_UNAUTHORIZED,
+            i18n.__("lang_invalid_token")
+          );
+        }
+        req.userInfo = userInfo;
+        next();
+      } else {
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_UNAUTHORIZED,
+          i18n.__("lang_invalid_token")
+        );
+      }
+    } catch (err) {
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_UNAUTHORIZED,
+        i18n.__("lang_invalid_token")
+      );
+    }
+
     const getAuthToken = headerContent["x-authorization"] || headerContent["authorization"];
 
     if (!getAuthToken.includes("Bearer")) {
