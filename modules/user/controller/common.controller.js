@@ -767,32 +767,32 @@ let getNomad = async (req, res) => {
     if (req.body?.gender == 0) {
       delete filter.gender;
     }
-    if (req.body?.interest && req.body.interest.length) {
+    if (req.body?.interest && Array.isArray(req.body.interest) && req.body.interest.length) {
       filter.interest = {
         $in: req.body.interest.map((id) => new mongoose.Types.ObjectId(id)),
       };
     }
-    if (req.body?.bodyType && req.body.bodyType.length) {
+    if (req.body?.bodyType && Array.isArray(req.body.bodyType) && req.body.bodyType.length) {
       filter.bodyType = {
         $in: req.body.bodyType.map((id) => new mongoose.Types.ObjectId(id)),
       };
     }
-    if (req.body?.eyeType && req.body.eyeType.length) {
+    if (req.body?.eyeType && Array.isArray(req.body.eyeType) && req.body.eyeType.length) {
       filter.eyeType = {
         $in: req.body.eyeType.map((id) => new mongoose.Types.ObjectId(id)),
       };
     }
-    if (req.body?.hairType && req.body.hairType.length) {
+    if (req.body?.hairType && Array.isArray(req.body.hairType) && req.body.hairType.length) {
       filter.hairType = {
         $in: req.body.hairType.map((id) => new mongoose.Types.ObjectId(id)),
       };
     }
-    if (req.body?.language && req.body.language.length) {
+    if (req.body?.language && Array.isArray(req.body.language) && req.body.language.length) {
       filter.language = {
         $in: req.body.language.map((id) => new mongoose.Types.ObjectId(id)),
       };
     }
-    if (req.body?.travelPreferences && req.body.travelPreferences.length) {
+    if (req.body?.travelPreferences && Array.isArray(req.body.travelPreferences) && req.body.travelPreferences.length) {
       filter.travelPreferences = {
         $in: req.body.travelPreferences.map(
           (id) => new mongoose.Types.ObjectId(id)
@@ -1000,7 +1000,7 @@ let findBy = async (req, res) => {
     if (req.body?.gender == 1 || req.body?.gender == 2) {
       filter.gender = Number(req.body?.gender);
     }
-    if (req.body?.interest && req.body?.interest.length) {
+    if (req.body?.interest && Array.isArray(req.body.interest) && req.body.interest.length) {
       filter.interest = {
         $in: req.body.interest.map((id) => new mongoose.Types.ObjectId(id)),
       };
