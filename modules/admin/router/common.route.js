@@ -126,4 +126,35 @@ adminCommonRouter.get(
   commonController.getContactSupport
 );
 
+// Subscription Plan Management Routes
+adminCommonRouter.get(
+  "/subscription-plans",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  commonController.getSubscriptionPlans
+);
+
+adminCommonRouter.post(
+  "/subscription-plans",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  commonController.createSubscriptionPlan
+);
+
+adminCommonRouter.patch(
+  "/subscription-plans/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  commonController.updateSubscriptionPlan
+);
+
+adminCommonRouter.delete(
+  "/subscription-plans/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  commonController.deleteSubscriptionPlan
+);
+
+adminCommonRouter.get(
+  "/subscription-analytics",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  commonController.getSubscriptionAnalytics
+);
+
 export default adminCommonRouter;

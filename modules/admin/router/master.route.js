@@ -34,6 +34,12 @@ masterRouter.patch(
   masterController.deleteInterest
 );
 
+masterRouter.put(
+  "/delete-interest/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  masterController.deleteInterest
+);
+
 masterRouter.get(
   "/hair-type-list",
   AuthMiddleware.checkAuthTokenAndVersion,
@@ -55,6 +61,12 @@ masterRouter.patch(
 );
 
 masterRouter.patch(
+  "/delete-hair-type/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  masterController.deleteHairType
+);
+
+masterRouter.put(
   "/delete-hair-type/:id",
   AuthMiddleware.checkAuthTokenAndVersion,
   masterController.deleteHairType
@@ -86,6 +98,12 @@ masterRouter.patch(
   masterController.deleteEyeType
 );
 
+masterRouter.put(
+  "/delete-eye-type/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  masterController.deleteEyeType
+);
+
 masterRouter.get(
   "/body-type-list",
   AuthMiddleware.checkAuthTokenAndVersion,
@@ -107,6 +125,12 @@ masterRouter.patch(
 );
 
 masterRouter.patch(
+  "/delete-body-type/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  masterController.deleteBodyType
+);
+
+masterRouter.put(
   "/delete-body-type/:id",
   AuthMiddleware.checkAuthTokenAndVersion,
   masterController.deleteBodyType
@@ -138,6 +162,12 @@ masterRouter.patch(
   masterController.deleteTravelPreference
 );
 
+masterRouter.put(
+  "/delete-preference/:id",
+  AuthMiddleware.checkAuthTokenAndVersion,
+  masterController.deleteTravelPreference
+);
+
 masterRouter.get(
     "/language-list",
     AuthMiddleware.checkAuthTokenAndVersion,
@@ -159,6 +189,12 @@ masterRouter.get(
   );
   
   masterRouter.patch(
+    "/delete-language/:id",
+    AuthMiddleware.checkAuthTokenAndVersion,
+    masterController.deleteLanguage
+  );
+
+  masterRouter.put(
     "/delete-language/:id",
     AuthMiddleware.checkAuthTokenAndVersion,
     masterController.deleteLanguage

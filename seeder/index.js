@@ -14,6 +14,7 @@ import { seedPreferenceData } from "./preferences.seeder.js";
 import { seedInterestData } from "./interest.seeder.js";
 import countryModel from "../models/country.model.js";
 import { seedAppVersionData } from "./appVersion.seeder.js";
+import subscriptionPlanSeeder from "./subscriptionPlan.seeder.js";
 
 async function runSeeders() {
   try {
@@ -33,6 +34,7 @@ async function runSeeders() {
     await seedPreferenceData();
     await seedInterestData();
     await seedAppVersionData();
+    await subscriptionPlanSeeder();
     // Run other seeders as needed
     console.log("Seeders executed successfully.");
     // let data=await countryModel.find();
