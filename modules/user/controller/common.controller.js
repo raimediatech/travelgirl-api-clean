@@ -862,7 +862,7 @@ let getNomad = async (req, res) => {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ["$blockBy", req.body.user_info._id] },
+                    { $eq: ["$blockBy", req.userInfo._id] },
                     { $eq: ["$blockTo", "$$matchUserId"] },
                   ],
                 },
@@ -883,7 +883,7 @@ let getNomad = async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ["$blockBy", "$$matchUserId"] },
-                    { $eq: ["$blockTo", req.body.user_info._id] },
+                    { $eq: ["$blockTo", req.userInfo._id] },
                   ],
                 },
               },
