@@ -30,7 +30,7 @@ const app = express();
 // Enhanced CORS configuration with explicit headers for iOS compatibility
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'Time-Zone', 'Device-Type', 'Device-Token', 'Version'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
   credentials: true
@@ -39,7 +39,7 @@ app.use(cors({
 // Handle OPTIONS requests explicitly for iOS
 app.options('*', cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'Time-Zone', 'Device-Type', 'Device-Token', 'Version'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
   credentials: true

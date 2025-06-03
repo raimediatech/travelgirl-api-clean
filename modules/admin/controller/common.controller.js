@@ -7,6 +7,7 @@ import userModel from "../../../models/user.model.js";
 import emailModel from "../../../models/email.model.js";
 import footerModel from "../../../models/footer.model.js";
 import userSubscriptionModel from "../../../models/userSubscription.model.js";
+import subscriptionPlanModel from "../../../models/subscriptionPlan.model.js";
 import userReportModel from "../../../models/userReport.model.js";
 import matchModel from "../../../models/match.model.js";
 import notification from "../../../utils/notification.js";
@@ -527,6 +528,10 @@ const updateUserStatus = async (req, res) => {
       );
     }
     let adminData = await helper.getAdminDetails();
+    if (!adminData) {
+      // Create a default admin data if not found
+      adminData = { _id: "admin" };
+    }
     if (user.status == constants.CONST_STATUS_ACTIVE) {
       await userModel.findOneAndUpdate(
         { _id: user._id },
@@ -1442,6 +1447,349 @@ const getContactSupport = async (req, res) => {
   }
 };
 
+// Subscription Plan Management Functions
+
+// Get all subscription plans
+const getSubscriptionPlans = async (req, res) => {
+  try {
+    console.log('Getting subscription plans...'); // Debug log
+    
+    // Simple query - remove status filter that might be blocking data
+    let filterObj = {};
+    
+    if (req.query?.search) {
+      filterObj.$or = [
+        { planName: { $regex: ".*" + req.query.search + ".*", $options: "i" } },
+        { planId: { $regex: ".*" + req.query.search + ".*", $options: "i" } }
+      ];
+    }
+
+    let pipeline = [
+      { $match: filterObj },
+      { $sort: { sortOrder: 1, createdAt: -1 } },
+      {
+        $project: {
+          _id: 1,
+          planName: 1,
+          planId: 1,
+          description: 1,
+          price: 1,
+          currency: 1,
+          duration: 1,
+          durationType: 1,
+          features: 1,
+          planType: 1,
+          isActive: 1,
+          isPopular: 1,
+          sortOrder: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      }
+    ];
+
+    // Get total count first
+    let totalCountPipeline = [...pipeline];
+    let totalCounts = await subscriptionPlanModel.aggregate(totalCountPipeline);
+    
+    // Apply pagination if requested
+    if (req.query?.page) {
+      const page = Number(req.query?.page);
+      const limit = constants.CONST_LIMIT || 10;
+      const skip = (page - 1) * limit;
+      pipeline.push({ $skip: skip }, { $limit: limit });
+    }
+
+    let data = await subscriptionPlanModel.aggregate(pipeline);
+    
+    // Always return data, even if empty
+    if (data.length == 0) {
+      return helper.returnTrueResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_OK,
+        "No subscription plans found",
+        [],
+        0
+      );
+    }
+
+    return helper.returnTrueResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_OK,
+      i18n.__("lang_data_found"),
+      data,
+      totalCounts.length
+    );
+  } catch (error) {
+    return helper.returnFalseResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
+// Create new subscription plan
+const createSubscriptionPlan = async (req, res) => {
+  try {
+    const {
+      planName,
+      planId,
+      description,
+      price,
+      currency,
+      duration,
+      durationType,
+      features,
+      planType,
+      isActive,
+      isPopular,
+      sortOrder
+    } = req.body;
+
+    // Check if planId already exists
+    const existingPlan = await subscriptionPlanModel.findOne({
+      planId: planId,
+      status: constants.CONST_STATUS_ACTIVE
+    });
+
+    if (existingPlan) {
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_BAD_REQUEST,
+        "Plan ID already exists"
+      );
+    }
+
+    const newPlan = new subscriptionPlanModel({
+      planName,
+      planId,
+      description,
+      price,
+      currency: currency || "USD",
+      duration,
+      durationType: durationType || "months",
+      features: features || [],
+      planType,
+      isActive: isActive !== undefined ? isActive : true,
+      isPopular: isPopular || false,
+      sortOrder: sortOrder || 0
+    });
+
+    await newPlan.save();
+
+    return helper.returnTrueResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_OK,
+      "Subscription plan created successfully",
+      newPlan
+    );
+  } catch (error) {
+    return helper.returnFalseResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
+// Update subscription plan
+const updateSubscriptionPlan = async (req, res) => {
+  try {
+    const planId = req.params.id;
+    const updateData = req.body;
+
+    // Check if plan exists
+    const existingPlan = await subscriptionPlanModel.findOne({
+      _id: planId,
+      status: constants.CONST_STATUS_ACTIVE
+    });
+
+    if (!existingPlan) {
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_NOT_FOUND,
+        "Subscription plan not found"
+      );
+    }
+
+    // If updating planId, check for duplicates
+    if (updateData.planId && updateData.planId !== existingPlan.planId) {
+      const duplicatePlan = await subscriptionPlanModel.findOne({
+        planId: updateData.planId,
+        status: constants.CONST_STATUS_ACTIVE,
+        _id: { $ne: planId }
+      });
+
+      if (duplicatePlan) {
+        return helper.returnFalseResponse(
+          req,
+          res,
+          constants.CONST_RESP_CODE_BAD_REQUEST,
+          "Plan ID already exists"
+        );
+      }
+    }
+
+    const updatedPlan = await subscriptionPlanModel.findByIdAndUpdate(
+      planId,
+      updateData,
+      { new: true }
+    );
+
+    return helper.returnTrueResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_OK,
+      "Subscription plan updated successfully",
+      updatedPlan
+    );
+  } catch (error) {
+    return helper.returnFalseResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
+// Delete subscription plan
+const deleteSubscriptionPlan = async (req, res) => {
+  try {
+    const planId = req.params.id;
+
+    const existingPlan = await subscriptionPlanModel.findOne({
+      _id: planId,
+      status: constants.CONST_STATUS_ACTIVE
+    });
+
+    if (!existingPlan) {
+      return helper.returnFalseResponse(
+        req,
+        res,
+        constants.CONST_RESP_CODE_NOT_FOUND,
+        "Subscription plan not found"
+      );
+    }
+
+    await subscriptionPlanModel.findByIdAndUpdate(planId, {
+      status: constants.CONST_STATUS_DELETED
+    });
+
+    return helper.returnTrueResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_OK,
+      "Subscription plan deleted successfully"
+    );
+  } catch (error) {
+    return helper.returnFalseResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
+// Get subscription plan analytics
+const getSubscriptionAnalytics = async (req, res) => {
+  try {
+    // Get total revenue by plan
+    const revenueByPlan = await userSubscriptionModel.aggregate([
+      {
+        $match: {
+          status: constants.CONST_STATUS_ACTIVE
+        }
+      },
+      {
+        $group: {
+          _id: "$productId",
+          totalRevenue: { $sum: "$amount" },
+          totalSubscriptions: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "subscriptionPlans",
+          localField: "_id",
+          foreignField: "planId",
+          as: "planDetails"
+        }
+      },
+      {
+        $unwind: {
+          path: "$planDetails",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          planId: "$_id",
+          planName: "$planDetails.planName",
+          totalRevenue: 1,
+          totalSubscriptions: 1
+        }
+      }
+    ]);
+
+    // Get monthly revenue trend
+    const monthlyRevenue = await userSubscriptionModel.aggregate([
+      {
+        $match: {
+          status: constants.CONST_STATUS_ACTIVE,
+          createdAt: {
+            $gte: new Date(new Date().setMonth(new Date().getMonth() - 12))
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          revenue: { $sum: "$amount" },
+          subscriptions: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 }
+      }
+    ]);
+
+    const analytics = {
+      revenueByPlan,
+      monthlyRevenue,
+      totalRevenue: revenueByPlan.reduce((sum, plan) => sum + plan.totalRevenue, 0),
+      totalSubscriptions: revenueByPlan.reduce((sum, plan) => sum + plan.totalSubscriptions, 0)
+    };
+
+    return helper.returnTrueResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_OK,
+      "Analytics data retrieved successfully",
+      analytics
+    );
+  } catch (error) {
+    return helper.returnFalseResponse(
+      req,
+      res,
+      constants.CONST_RESP_CODE_INTERNAL_SERVER_ERROR,
+      error.message
+    );
+  }
+};
+
 const commonController = {
   dashboard: dashboard,
   userList: userList,
@@ -1462,7 +1810,13 @@ const commonController = {
   rejectOrApproveUserProfile: rejectOrApproveUserProfile,
   updateVersion: updateVersion,
   getVersion: getVersion,
-  getContactSupport:getContactSupport
+  getContactSupport: getContactSupport,
+  // Subscription Plan Management
+  getSubscriptionPlans: getSubscriptionPlans,
+  createSubscriptionPlan: createSubscriptionPlan,
+  updateSubscriptionPlan: updateSubscriptionPlan,
+  deleteSubscriptionPlan: deleteSubscriptionPlan,
+  getSubscriptionAnalytics: getSubscriptionAnalytics,
 };
 
 export default commonController;
